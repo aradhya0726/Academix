@@ -1,8 +1,8 @@
 # Academix
 
-**A Laravel-based Academic Management System**
+**A Laravel-Based Academic Management System**
 
-Academix is a web-based platform designed to simplify academic administration and improve communication between administrators, teachers, and students.
+Academix is a web-based academic management platform designed to simplify academic administration and improve communication between administrators, teachers, and students.
 
 ## Features
 
@@ -10,14 +10,14 @@ Academix is a web-based platform designed to simplify academic administration an
 - Manage academic information and users
 - Manage faculties, classes, and subjects
 - Manage teachers and students
-- Publish and manage notices
+- Publish and manage academic notices
 - Manage assignments
 - View attendance reports
 
 ### Teacher
 - Dedicated teacher dashboard
 - Manage notices and assignments
-- Manage student submissions
+- Review student submissions
 - Record and manage student attendance
 
 ### Student
@@ -29,10 +29,15 @@ Academix is a web-based platform designed to simplify academic administration an
 
 ## Technology Stack
 
-- **Backend:** PHP, Laravel
-- **Database:** MySQL
-- **Frontend:** HTML, CSS, JavaScript
-- **Build Tools:** Vite
+| Technology | Purpose |
+|---|---|
+| PHP | Backend programming |
+| Laravel | Web application framework |
+| MySQL | Database |
+| HTML | Page structure |
+| CSS | Styling |
+| JavaScript | Frontend functionality |
+| Vite | Asset bundling |
 
 ## Installation
 
@@ -42,60 +47,56 @@ Academix is a web-based platform designed to simplify academic administration an
 - MySQL
 - Node.js and npm
 
-### Setup
+### Setup Instructions
 
-1. Clone the repository:
-
+1. **Clone the repository**
    ```bash
-   git clone YOUR_REPOSITORY_URL
+   git clone https://github.com/aradhya0726/Academix.git
    ```
 
-2. Enter the project directory:
-
+2. **Navigate to the project directory**
    ```bash
-   cd academix
+   cd Academix
    ```
 
-3. Install PHP dependencies:
-
+3. **Install PHP dependencies**
    ```bash
    composer install
    ```
 
-4. Create your environment file:
-
+4. **Create the environment file**
    ```bash
    cp .env.example .env
    ```
 
-5. Generate the application key:
-
+5. **Generate the application key**
    ```bash
    php artisan key:generate
    ```
 
-6. Configure your database credentials in `.env`.
+6. **Configure the database**
 
-7. Run database migrations:
+   Update your database credentials in the `.env` file.
 
+7. **Run database migrations**
    ```bash
    php artisan migrate
    ```
 
-8. Install frontend dependencies and build assets:
-
+8. **Install frontend dependencies**
    ```bash
    npm install
    npm run build
    ```
 
-9. Start the Laravel development server:
-
+9. **Start the development server**
    ```bash
    php artisan serve
    ```
 
-10. Open `http://127.0.0.1:8000` in your browser.
+10. **Open the application**
+
+    Visit http://127.0.0.1:8000 in your browser.
 
 ## Security
 
