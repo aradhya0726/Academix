@@ -13,8 +13,8 @@ return new class extends Migration
             $table->id();
 
             // Match existing INT primary keys
-            $table->integer('class_id');
-            $table->integer('subject_id');
+         $table->unsignedInteger('class_id');
+$table->unsignedInteger('subject_id');
 
             // Users table uses BIGINT UNSIGNED
             $table->foreignId('teacher_id')

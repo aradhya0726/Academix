@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -8,15 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('assignment_submissions', function (Blueprint $table) {
-            $table->string('status_override')->nullable()->after('note');
-        });
+        if (! Schema::hasColumn('assignment_submissions', 'status_override')) {
+            Schema::table('assignment_submissions', function (Blueprint $table) {
+                $table->string('status_override')->nullable()->after('note');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('assignment_submissions', function (Blueprint $table) {
-            $table->dropColumn('status_override');
-        });
+        if (Schema::hasColumn('assignment_submissions', 'status_override')) {
+            Schema::table('assignment_submissions', function (Blueprint $table) {
+                $table->dropColumn('status_override');
+            });
+        }
     }
 };

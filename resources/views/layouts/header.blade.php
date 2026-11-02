@@ -79,16 +79,16 @@
                    class="nav-link-sub {{ $adminActive ? 'active' : '' }}">
                     Admin
                 </a>
-
+                  <a href="{{ route('teacher.list') }}"
+                   class="nav-link-sub {{ $teacherActive ? 'active' : '' }}">
+                    Teachers
+                </a>
                 <a href="{{ route('student.list') }}"
                    class="nav-link-sub {{ $studentActive ? 'active' : '' }}">
                     Students
                 </a>
 
-                <a href="{{ route('teacher.list') }}"
-                   class="nav-link-sub {{ $teacherActive ? 'active' : '' }}">
-                    Teachers
-                </a>
+              
             </div>
 
             <div class="nav-item-toggle {{ $academicOpen ? 'active' : '' }}"
