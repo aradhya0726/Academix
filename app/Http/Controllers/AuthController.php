@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+
+
 use App\Mail\ForgotPasswordMail;
 use App\Models\User;
 use Carbon\Carbon;
@@ -11,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -21,7 +24,6 @@ class AuthController extends Controller
     // PUBLIC ENTRY POINTS
     // ==========================================
 
-    /** "/" : guests see the welcome page, signed-in users go to their dashboard. */
     public function welcome()
     {
         if (Auth::check()) {
@@ -31,7 +33,6 @@ class AuthController extends Controller
         return view('welcome');
     }
 
-    /** "/home" : kept as-is for existing links. */
     public function home()
     {
         if (! Auth::check()) {
@@ -65,11 +66,9 @@ class AuthController extends Controller
             'password.required' => 'Please enter your password.',
         ]);
 
-        // Checked box sends "on"; unchecked sends nothing.
         $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
-            // Prevent session fixation (documented Laravel pattern).
             $request->session()->regenerate();
 
             return $this->redirectToDashboard();
@@ -82,14 +81,14 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Auth::logout() also rotates remember_token and expires the remember cookie.
         $this->endSession($request);
 
-        return redirect()->route('login')->with('success', 'You have been logged out successfully.');
+        return redirect()->route('login')
+            ->with('success', 'You have been logged out successfully.');
     }
 
     // ==========================================
-    // PASSWORD RESET (uses password_reset_tokens, NOT remember_token)
+    // PASSWORD RESET
     // ==========================================
 
     public function forgotpassword()
@@ -105,28 +104,54 @@ class AuthController extends Controller
 
         $user = User::getEmailSingle($request->email);
 
-        if (empty($user)) {
-            return redirect()->back()->with('error', 'We could not find an account associated with that email address.');
+        /*
+         * SECURITY FIX:
+         * Always show the same response regardless of whether
+         * the email address exists in the database.
+         */
+
+        if ($user) {
+            $token = Str::random(64);
+
+            // Store only the SHA-256 hash of the reset token.
+            DB::table(self::RESET_TABLE)->updateOrInsert(
+                ['email' => $user->email],
+                [
+                    'token' => hash('sha256', $token),
+                    'created_at' => now(),
+                ]
+            );
+
+            try {
+                Mail::to($user->email)->send(
+                    new ForgotPasswordMail($user, $token)
+                );
+            } catch (\Throwable $exception) {
+
+                // Log the failure internally.
+                // Never expose account existence or mail errors
+                // to the person requesting a password reset.
+
+                Log::error('Password reset email could not be sent.', [
+                    'exception' => $exception::class,
+                ]);
+            }
         }
 
-        $token = Str::random(64);
-
-        // One pending reset per email. Only a SHA-256 hash is stored.
-        DB::table(self::RESET_TABLE)->updateOrInsert(
-            ['email' => $user->email],
-            ['token' => hash('sha256', $token), 'created_at' => now()]
+        // Identical response for existing and non-existing emails.
+        return redirect()->back()->with(
+            'status',
+            'If an account exists with that email address, a password reset link will be sent.'
         );
-
-        Mail::to($user->email)->send(new ForgotPasswordMail($user, $token));
-
-        return redirect()->back()->with('status', 'A password reset link has been sent to your email address.');
     }
 
     public function reset($token)
     {
         abort_unless($this->resetRecord($token), 404);
 
-        return view('auth.reset', ['token' => $token]);
+        return view('auth.reset', [
+            'token' => $token,
+        ]);
     }
 
     public function PostReset($token, Request $request)
@@ -140,29 +165,42 @@ class AuthController extends Controller
         ]);
 
         $record = $this->resetRecord($token);
-        $user   = $record ? User::getEmailSingle($record->email) : null;
+
+        $user = $record
+            ? User::getEmailSingle($record->email)
+            : null;
 
         if (! $user) {
             return redirect()->route('password.request')
-                ->with('error', 'This password reset link is invalid or has expired. Please request a new one.');
+                ->with(
+                    'error',
+                    'This password reset link is invalid or has expired. Please request a new one.'
+                );
         }
 
         $user->password = Hash::make($request->password);
-        // Password changed: sign out every remembered device.
+
+        // Invalidate remembered sessions on other devices.
         $user->setRememberToken(Str::random(60));
+
         $user->save();
 
-        DB::table(self::RESET_TABLE)->where('email', $user->email)->delete();
+        // Delete the used reset token.
+        DB::table(self::RESET_TABLE)
+            ->where('email', $user->email)
+            ->delete();
 
         return redirect()->route('login')
-            ->with('success', 'Your password has been reset successfully. You can now sign in with your new password.');
+            ->with(
+                'success',
+                'Your password has been reset successfully. You can now sign in with your new password.'
+            );
     }
 
     // ==========================================
     // HELPERS
     // ==========================================
 
-    /** Single source of truth for role-based redirects. */
     private function redirectToDashboard(): RedirectResponse
     {
         $route = Auth::user()->dashboardRoute();
@@ -173,7 +211,8 @@ class AuthController extends Controller
 
         $this->endSession(request());
 
-        return redirect()->route('login')->with('error', 'Your account role is not recognized.');
+        return redirect()->route('login')
+            ->with('error', 'Your account role is not recognized.');
     }
 
     private function endSession(Request $request): void
@@ -184,7 +223,9 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
     }
 
-    /** Returns the reset row for a valid, unexpired token, otherwise null. */
+    /**
+     * Returns a valid, unexpired password reset record.
+     */
     private function resetRecord(string $token): ?object
     {
         $record = DB::table(self::RESET_TABLE)
@@ -197,8 +238,15 @@ class AuthController extends Controller
 
         $minutes = (int) config('auth.passwords.users.expire', 60);
 
-        if (! $record->created_at || Carbon::parse($record->created_at)->lt(now()->subMinutes($minutes))) {
-            DB::table(self::RESET_TABLE)->where('email', $record->email)->delete();
+        if (
+            ! $record->created_at ||
+            Carbon::parse($record->created_at)->lt(
+                now()->subMinutes($minutes)
+            )
+        ) {
+            DB::table(self::RESET_TABLE)
+                ->where('email', $record->email)
+                ->delete();
 
             return null;
         }
