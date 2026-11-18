@@ -186,19 +186,9 @@
                 </a>
             </div>
 
-            <div class="nav-section-label">Insights</div>
-
-            <a href="#" class="nav-item-flat">
-                <i class="bi bi-bar-chart-line-fill"></i>
-                <span class="nav-link-text">Reports</span>
-            </a>
-
             <div class="nav-section-label">System</div>
 
-            <a href="#" class="nav-item-flat">
-                <i class="bi bi-gear-fill"></i>
-                <span class="nav-link-text">Settings</span>
-            </a>
+            
 
         @elseif(Auth::user()->role == 'teacher')
 

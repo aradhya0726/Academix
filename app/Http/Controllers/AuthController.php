@@ -132,9 +132,10 @@ class AuthController extends Controller
                 // Never expose account existence or mail errors
                 // to the person requesting a password reset.
 
-                Log::error('Password reset email could not be sent.', [
-                    'exception' => $exception::class,
-                ]);
+              Log::error('Password reset email could not be sent.', [
+    'exception' => $exception::class,
+    'message' => $exception->getMessage(),
+]);
             }
         }
 

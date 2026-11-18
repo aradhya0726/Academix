@@ -1,17 +1,18 @@
+
 @extends('layouts.app')
 
-@section('page-title','Edit Admin')
+@section('page-title', 'Edit Admin')
 
 @section('content')
 
 @if ($errors->any())
-<div class="alert alert-danger">
-    <ul class="mb-0">
-        @foreach($errors->all() as $error)
-            <li>{{ $error }}</li>
-        @endforeach
-    </ul>
-</div>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
 @endif
 
 <div class="content-panel">
@@ -23,8 +24,7 @@
         </div>
 
         <a href="{{ route('admin.list') }}" class="btn btn-outline-primary">
-            <i class="bi bi-arrow-left"></i>
-            Back to List
+            <i class="bi bi-arrow-left"></i> Back to List
         </a>
     </div>
 
@@ -35,46 +35,70 @@
 
         <div class="card-body">
 
-            <form action="{{ route('admin.update', $admin->id) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.update', $admin->id) }}"
+                  method="POST" enctype="multipart/form-data">
+
                 @csrf
 
                 <div class="row">
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ old('name', $admin->name) }}" required>
+                        <input type="text" name="name" class="form-control"
+                               value="{{ old('name', $admin->name) }}" required>
+                        @error('name')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ old('email', $admin->email) }}" required>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ old('email', $admin->email) }}" required>
+                        @error('email')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control" value="{{ old('phone', $admin->phone_number) }}" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Current Photo</label>
-                        <br>
-                        @if($admin->photo)
-                            <img src="{{ asset('uploads/profile/'.$admin->photo) }}" width="70" height="70" style="border-radius:50%;object-fit:cover;">
-                        @else
-                            <span class="text-muted">No photo</span>
-                        @endif
+                        <input type="text" name="phone" class="form-control"
+                               value="{{ old('phone', $admin->phone_number) }}" required>
+                        @error('phone')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Change Profile Image</label>
-                        <input type="file" name="profile_image" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                        <input type="file" name="profile_image" id="profile_image"
+                               class="form-control"
+                               accept=".jpg,.jpeg,.png,.webp">
+                        @error('profile_image')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                        <small class="text-muted">
+                            Leave empty to keep the current photo.
+                        </small>
                     </div>
 
                 </div>
 
+                @include('admin.partials.profile-image-cropper', [
+                    'initialPhotoUrl' => $admin->photo
+                        ? asset('uploads/profile/'.$admin->photo)
+                        : null,
+                    'initialPhotoAlt' => $admin->name
+                ])
+
                 <div class="text-end mt-4">
-                    <a href="{{ route('admin.list') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Update Admin</button>
+                    <a href="{{ route('admin.list') }}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+
+                    <button type="submit" class="btn btn-primary">
+                        Update Admin
+                    </button>
                 </div>
 
             </form>

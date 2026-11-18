@@ -25,20 +25,37 @@
     </a>
 </div>
 
-@if($stats['at_risk'])
-    <div class="alert alert-danger d-flex gap-2 align-items-start">
-        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
-        <div>
-            <strong>Your attendance is {{ $stats['rate'] }}%, below the required {{ $threshold }}%.</strong>
-            <div>Attend {{ $needed === 1 ? 'your next class' : 'your next ' . $needed . ' classes' }} without missing any to get back to {{ $threshold }}%.</div>
-          
+{{-- Subject-wise attendance alerts --}}
+@php
+    $subjectsAtRisk = $bySubject->filter(
+        fn ($s) => $s['rate'] !== null && $s['rate'] < $threshold
+    );
+@endphp
+
+@if($subjectsAtRisk->isNotEmpty())
+    @foreach($subjectsAtRisk as $name => $s)
+        <div class="alert alert-danger d-flex gap-2 align-items-start">
+            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+            <div>
+                <strong>
+                    Your {{ $name }} attendance is {{ $s['rate'] }}%,
+                    below the required {{ $threshold }}%.
+                </strong>
+                <div>
+                    Attend your next {{ $s['needed'] }}
+                    {{ \Illuminate\Support\Str::plural('class', $s['needed']) }}
+                    in {{ $name }} without missing any to reach the required percentage.
+                </div>
+            </div>
         </div>
-    </div>
-@elseif($stats['rate'] !== null)
+    @endforeach
+@elseif($bySubject->isNotEmpty())
     <div class="alert alert-success py-2">
-        <i class="bi bi-check-circle-fill me-1"></i> You are above the required {{ $threshold }}%. Late counts as attended.
+        <i class="bi bi-check-circle-fill me-1"></i>
+        Your attendance is meeting the required percentage in every subject.
     </div>
 @endif
+
 
 <div class="stat-grid">
     <div class="stat-card">

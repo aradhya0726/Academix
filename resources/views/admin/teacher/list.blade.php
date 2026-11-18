@@ -1,3 +1,4 @@
+
 @extends('layouts.app')
 
 @section('title', 'Teacher List')
@@ -26,27 +27,57 @@
 
         <form method="GET" action="{{ route('teacher.list') }}" class="mb-4">
             <div class="row g-2">
+
                 <div class="col-md-5">
-                    <input type="text"
-                           name="search"
-                           class="form-control"
-                           placeholder="Search teacher by name, email or phone..."
-                           value="{{ request('search') }}">
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control"
+                        placeholder="Search teacher by name, email or phone..."
+                        value="{{ request('search') }}"
+                        aria-label="Search teachers"
+                        style="color:#334155;"
+                    >
                 </div>
+
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search"></i>
                         Search
                     </button>
                 </div>
+
                 <div class="col-md-2">
                     <a href="{{ route('teacher.list') }}" class="btn btn-secondary w-100">
                         <i class="bi bi-x-circle"></i>
                         Clear
                     </a>
                 </div>
+
             </div>
         </form>
+
+        <style>
+            input[name="search"]::placeholder {
+                color: #94A3B8 !important;
+                opacity: 1 !important;
+            }
+
+            input[name="search"]::-webkit-input-placeholder {
+                color: #94A3B8 !important;
+                opacity: 1 !important;
+            }
+
+            input[name="search"]::-moz-placeholder {
+                color: #94A3B8 !important;
+                opacity: 1 !important;
+            }
+
+            input[name="search"]:-ms-input-placeholder {
+                color: #94A3B8 !important;
+                opacity: 1 !important;
+            }
+        </style>
 
         <div class="card">
             <div class="card-header">
@@ -63,6 +94,7 @@
                 @endif
 
                 @if ($teachers->count())
+
                     <table class="table table-striped">
                         <thead>
                             <tr>
@@ -74,28 +106,57 @@
                                 <th style="width: 140px">Actions</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             @foreach ($teachers as $teacher)
                                 <tr>
-                                    <td>{{ $loop->iteration + ($teachers->currentPage() - 1) * $teachers->perPage() }}.</td>
+                                    <td>
+                                        {{ $loop->iteration + ($teachers->currentPage() - 1) * $teachers->perPage() }}.
+                                    </td>
+
                                     <td>
                                         @if ($teacher->photo)
-                                            <img src="{{ asset('uploads/profile/' . $teacher->photo) }}" alt="{{ $teacher->name }}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
+                                            <img
+                                                src="{{ asset('uploads/profile/' . $teacher->photo) }}"
+                                                alt="{{ $teacher->name }}"
+                                                style="width:38px;height:38px;border-radius:50%;object-fit:cover;"
+                                            >
                                         @else
-                                            <span style="font-size:12px;color:var(--text-secondary,#64748B);">No photo</span>
+                                            <span style="font-size:12px;color:var(--text-secondary,#64748B);">
+                                                No photo
+                                            </span>
                                         @endif
                                     </td>
+
                                     <td>{{ $teacher->name }}</td>
+
                                     <td>{{ $teacher->email }}</td>
+
                                     <td>{{ $teacher->phone_number ?? '—' }}</td>
+
                                     <td>
-                                        <a href="{{ route('teacher.edit', $teacher->id) }}" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:var(--primary-soft);color:var(--primary);text-decoration:none;margin-right:6px;">
+                                        <a
+                                            href="{{ route('teacher.edit', $teacher->id) }}"
+                                            title="Edit Teacher"
+                                            style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:var(--primary-soft);color:var(--primary);text-decoration:none;margin-right:6px;"
+                                        >
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form action="{{ route('teacher.delete', $teacher->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Delete this teacher? This cannot be undone.');">
+
+                                        <form
+                                            action="{{ route('teacher.delete', $teacher->id) }}"
+                                            method="POST"
+                                            style="display:inline-block;"
+                                            onsubmit="return confirm('Delete this teacher? This cannot be undone.');"
+                                        >
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:rgba(220,38,38,0.08);color:#DC2626;border:none;cursor:pointer;">
+
+                                            <button
+                                                type="submit"
+                                                title="Delete Teacher"
+                                                style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:rgba(220,38,38,0.08);color:#DC2626;border:none;cursor:pointer;"
+                                            >
                                                 <i class="bi bi-trash3"></i>
                                             </button>
                                         </form>
@@ -108,10 +169,16 @@
                     <div style="padding:16px 20px;">
                         {{ $teachers->links() }}
                     </div>
+
                 @else
+
                     <div style="padding:40px 20px;text-align:center;color:var(--text-secondary,#64748B);">
-                        No teachers found yet. <a href="{{ route('teacher.add') }}" style="color:var(--primary,#2563EB);font-weight:600;">Add your first teacher</a>.
+                        No teachers found yet.
+                        <a href="{{ route('teacher.add') }}" style="color:var(--primary,#2563EB);font-weight:600;">
+                            Add your first teacher
+                        </a>.
                     </div>
+
                 @endif
 
             </div>
