@@ -132,95 +132,114 @@ class DashboardController extends Controller
     // ==========================================
     // TEACHER
     // ==========================================
+  
+    // ==========================================
+    // TEACHER
+    // ==========================================
     private function teacher()
     {
-        $teacherId = Auth::id();
-        $today     = Carbon::today();
+        $teacher = Auth::user();
+        $teacherId = $teacher->id;
 
-        $subjects = Subject::with('classroom.faculty')
+        /*
+        |--------------------------------------------------------------------------
+        | A. Assigned classes
+        |--------------------------------------------------------------------------
+        | A teacher can be assigned subjects in multiple classes and faculties.
+        | Grouping by class_id ensures each class appears only once.
+        | No faculty is inferred from the teacher account.
+        */
+        $assignedSubjects = Subject::query()
+            ->with(['classroom.faculty'])
             ->where('teacher_id', $teacherId)
-            ->where('status', 0)
             ->orderBy('class_id')
             ->orderBy('name')
             ->get();
 
-        $sessions = AttendanceSession::with(['records', 'subject', 'classroom.faculty'])
-            ->where('teacher_id', $teacherId)
-            ->whereDate('attendance_date', '>=', $today->copy()->subDays(self::WINDOW_DAYS - 1)->toDateString())
-            ->whereDate('attendance_date', '<=', $today->toDateString())
-            ->get();
-
-        $allRecords = $sessions->flatMap->records;
-        $stats      = AttendanceRecord::tally($allRecords);
-
-        $weekStart        = $today->copy()->startOfWeek();
-        $sessionsThisWeek = $sessions->filter(fn ($s) => $s->attendance_date->gte($weekStart))->count();
-
-        $isHoliday   = AttendanceSession::isHoliday($today);
-        $markedToday = $sessions->filter(fn ($s) => $s->attendance_date->isSameDay($today))->pluck('subject_id')->all();
-
-        $unmarkedToday = $isHoliday
-            ? collect()
-            : $subjects->reject(fn ($subject) => in_array($subject->id, $markedToday, true))->values();
-
-        $studentCount = User::where('role', 'student')
-            ->whereIn('class_id', $subjects->pluck('class_id')->unique())
-            ->count();
-
-        [$trendLabels, $trendValues] = $this->trend($sessions);
-        [$atRiskCount, $atRisk]      = $this->atRisk($allRecords);
-
-        $bySubject = $subjects->map(function ($subject) use ($sessions) {
-            $mine = $sessions->where('subject_id', $subject->id);
-            $t    = AttendanceRecord::tally($mine->flatMap->records);
-
-            return [
-                'name'     => $subject->name,
-                'class'    => $this->classLabel($subject->classroom),
-                'rate'     => $t['rate'],
-                'below'    => $t['below'],
-                'attended' => $t['attended'],
-                'marked'   => $t['marked'],
-                'sessions' => $mine->count(),
-            ];
-        })->values();
-
-        $recent = $sessions
-            ->sortByDesc(fn ($s) => $s->attendance_date->timestamp * 100000 + $s->id)
-            ->take(self::LIST_LIMIT)
-            ->map(function ($s) {
-                $t = AttendanceRecord::tally($s->records);
+        $assignedClasses = $assignedSubjects
+            ->groupBy('class_id')
+            ->map(function ($classSubjects, $classId) {
+                $classroom = $classSubjects->first()?->classroom;
 
                 return [
-                    'date'    => $s->attendance_date,
-                    'subject' => $s->subject?->name ?? '—',
-                    'class'   => $this->classLabel($s->classroom),
-                    'counts'  => ['present' => $t['present'], 'late' => $t['late'], 'absent' => $t['absent']],
-                    'rate'    => $t['rate'],
+                    'class_id' => (int) $classId,
+                    'faculty' => $classroom?->faculty?->name ?? '—',
+                    'semester' => $classroom?->semester,
+                    'subjects' => $classSubjects
+                        ->pluck('name')
+                        ->filter()
+                        ->unique()
+                        ->values(),
                 ];
             })
             ->values();
 
+        /*
+        |--------------------------------------------------------------------------
+        | B. Assignments created by this teacher
+        |--------------------------------------------------------------------------
+        | The assignment's persisted class_id is used for class/faculty details.
+        | Submission totals are loaded with a count query (no N+1 queries).
+        */
+        $assignments = Assignment::query()
+            ->with([
+                'subject',
+                'classroom.faculty',
+            ])
+            ->withCount('submissions')
+            ->where('teacher_id', $teacherId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(6, ['*'], 'assignments_page');
+
+        /*
+        |--------------------------------------------------------------------------
+        | C. Notices visible to this teacher
+        |--------------------------------------------------------------------------
+        | Reuse the application's existing visibility scope without widening
+        | access or changing role-based notice rules.
+        */
+        $notices = Notice::query()
+            ->with(['author', 'classroom.faculty'])
+            ->visibleTo($teacher)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | D. Six most recently saved attendance sessions owned by this teacher
+        |--------------------------------------------------------------------------
+        | updated_at reflects the latest save, including edits to an existing
+        | session; attendance_date is displayed separately as the class date.
+        | Conditional withCount queries avoid loading every attendance record.
+        */
+        $recentSessions = AttendanceSession::query()
+            ->with([
+                'subject',
+                'classroom.faculty',
+            ])
+            ->withCount([
+                'records as present_count' => fn ($query) => $query->where('status', 'present'),
+                'records as absent_count' => fn ($query) => $query->where('status', 'absent'),
+                'records as late_count' => fn ($query) => $query->where('status', 'late'),
+            ])
+            ->where('teacher_id', $teacherId)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
+
         return view('teacher.dashboard', [
-            'greeting'         => $this->greeting(),
-            'threshold'        => AttendanceRecord::threshold(),
-            'minSessions'      => AttendanceRecord::minSessionsForRisk(),
-            'holidayLabel'     => AttendanceSession::weekendLabel(),
-            'isHoliday'        => $isHoliday,
-            'subjects'         => $subjects,
-            'studentCount'     => $studentCount,
-            'sessionsThisWeek' => $sessionsThisWeek,
-            'stats'            => $stats,
-            'rate30'           => $stats['rate'],
-            'unmarkedToday'    => $unmarkedToday,
-            'trendLabels'      => $trendLabels,
-            'trendValues'      => $trendValues,
-            'atRiskCount'      => $atRiskCount,
-            'atRisk'           => $atRisk,
-            'bySubject'        => $bySubject,
-            'recent'           => $recent,
+            'greeting' => $this->greeting(),
+            'assignedClasses' => $assignedClasses,
+            'assignments' => $assignments,
+            'notices' => $notices,
+            'recentSessions' => $recentSessions,
         ]);
     }
+
 
     // ==========================================
     // STUDENT

@@ -64,18 +64,54 @@ class TeacherAssignmentController extends Controller
         return Assignment::where('teacher_id', Auth::id())->findOrFail($id);
     }
 
-    public function list(Request $request)
-    {
-        $assignments = Assignment::with(['subject', 'classroom.faculty'])
-            ->withCount('submissions')
-            ->where('teacher_id', Auth::id())
-            ->when($request->filled('search'), fn ($q) => $q->where('title', 'like', '%' . $request->search . '%'))
-            ->orderByDesc('id')
-            ->paginate(10)
-            ->withQueryString();
+   
+public function list(Request $request)
+{
+    $teacherId = Auth::id();
 
-        return view('assignments.list', ['assignments' => $assignments, 'mode' => 'teacher']);
-    }
+    // Only subjects assigned to this teacher.
+    $subjects = $this->subjects();
+
+    $subjectId = $request->input('subject_id');
+    $search = $request->input('search');
+
+    $assignments = Assignment::with([
+            'subject',
+            'classroom.faculty',
+        ])
+        ->withCount('submissions')
+
+        // Strict ownership restriction.
+        ->where('teacher_id', $teacherId)
+
+        ->when($search, function ($query) use ($search) {
+            $query->where('title', 'like', "%{$search}%");
+        })
+
+        // Subject filter is limited to the teacher's own subjects.
+        ->when($subjectId, function ($query) use ($subjectId, $subjects) {
+            $allowedSubjectIds = $subjects->pluck('id');
+
+            if ($allowedSubjectIds->contains((int) $subjectId)) {
+                $query->where('subject_id', $subjectId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        })
+
+        ->orderByDesc('id')
+        ->paginate(10)
+        ->withQueryString();
+
+    return view('assignments.list', [
+        'assignments' => $assignments,
+        'mode' => 'teacher',
+        'subjects' => $subjects,
+        'subjectId' => $subjectId,
+        'search' => $search,
+    ]);
+}
+
 
     public function add()
     {

@@ -328,8 +328,11 @@
                 <span class="nav-link-text">Notices</span>
             </a>
 
-        @endif
 
+        @endif
+ </div>
+
+            <div class="nav-section-label">System</div>
         <!-- SIDEBAR LOGOUT BUTTON -->
         <button type="submit"
                 form="logout-form"

@@ -1,4 +1,4 @@
-
+```php
 @extends('layouts.app')
 
 @section('title', 'My Attendance')
@@ -84,6 +84,25 @@
             <p>Track your subject-wise attendance and download a report for any date range.</p>
         </div>
     </div>
+
+    {{-- Attendance overview --}}
+    <section class="row g-3 mb-4" aria-label="Attendance overview">
+        @foreach([
+            ['label' => 'Attendance rate', 'value' => number_format($percentage, 1).'%', 'icon' => 'bi-speedometer2', 'tone' => 'tone-neutral'],
+            ['label' => 'Present', 'value' => $present, 'icon' => 'bi-check-circle', 'tone' => 'tone-present'],
+            ['label' => 'Late', 'value' => $late, 'icon' => 'bi-clock-history', 'tone' => 'tone-late'],
+            ['label' => 'Absent', 'value' => $absent, 'icon' => 'bi-x-circle', 'tone' => 'tone-absent'],
+        ] as $metric)
+            <div class="col-6 col-xl-3">
+                <div class="att-card att-card-pad h-100">
+                    <div class="att-stat">
+                        <div class="att-stat-icon {{ $metric['tone'] }}"><i class="bi {{ $metric['icon'] }}"></i></div>
+                        <div><div class="att-stat-value">{{ $metric['value'] }}</div><div class="att-stat-label">{{ $metric['label'] }}</div></div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </section>
 
     {{-- Success message --}}
     @if(session('success'))

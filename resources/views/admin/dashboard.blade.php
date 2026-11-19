@@ -3,6 +3,27 @@
 @section('title', 'Dashboard')
 
 @section('content')
+<style>
+    .admin-dashboard { max-width: 1600px; margin: 0 auto; }
+    .admin-dashboard .page-heading { font-size: clamp(1.55rem,2vw,2rem); font-weight: 780; letter-spacing: -.045em; }
+    .admin-dashboard .eyebrow { color: var(--primary); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .admin-dashboard .page-heading + .text-muted { font-size: .86rem; }
+    .admin-dashboard .stat-grid { gap: .9rem; margin: 1.2rem 0 1.35rem; }
+    .admin-dashboard .stat-card { border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 2px 10px rgba(15,23,42,.045); padding: 1.1rem 1.2rem; }
+    .admin-dashboard .stat-value { font-size: clamp(1.55rem,2vw,2rem); font-weight: 780; letter-spacing: -.045em; }
+    .admin-dashboard .stat-label { color: var(--text-secondary); font-size: .76rem; font-weight: 650; }
+    .admin-dashboard .chart-grid { gap: 1rem; margin-bottom: 1rem !important; }
+    .admin-dashboard .chart-card { border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; box-shadow: 0 2px 10px rgba(15,23,42,.045); }
+    .admin-dashboard .chart-header { margin-bottom: 1rem; }
+    .admin-dashboard .chart-title { font-size: .98rem; font-weight: 760; letter-spacing: -.02em; }
+    .admin-dashboard .chart-subtitle { font-size: .76rem; line-height: 1.5; }
+    .admin-dashboard .progress { border-radius: 99px; background: rgba(100,116,139,.15); }
+    .admin-dashboard .chart-card .border-bottom { border-color: var(--border) !important; }
+    .admin-dashboard .btn { border-radius: 9px; font-weight: 650; padding: .58rem .85rem; }
+    .admin-dashboard .chart-card canvas { max-height: 265px; }
+    @media(max-width:767.98px) { .admin-dashboard .chart-card { padding: 1rem; } }
+</style>
+<div class="admin-dashboard">
 @php
     $plural  = fn ($n, $word) => $n . ' ' . \Illuminate\Support\Str::plural($word, $n);
     $barTone = fn ($r) => $r === null ? 'bg-secondary' : ($r >= $threshold ? 'bg-success' : ($r >= $threshold - 15 ? 'bg-warning' : 'bg-danger'));
@@ -206,6 +227,7 @@
     @empty
         <p class="text-muted mb-0">No attendance has been saved yet.</p>
     @endforelse
+</div>
 </div>
 @endsection
 

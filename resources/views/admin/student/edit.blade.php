@@ -36,7 +36,8 @@
         <div class="card-body">
 
             <form action="{{ route('student.update', $student->id) }}"
-                  method="POST" enctype="multipart/form-data">
+                  method="POST"
+                  enctype="multipart/form-data">
 
                 @csrf
 
@@ -44,8 +45,11 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control"
-                               value="{{ old('name', $student->name) }}" required>
+                        <input type="text" name="name"
+                               class="form-control"
+                               value="{{ old('name', $student->name) }}"
+                               required>
+
                         @error('name')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
@@ -53,8 +57,11 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control"
-                               value="{{ old('email', $student->email) }}" required>
+                        <input type="email" name="email"
+                               class="form-control"
+                               value="{{ old('email', $student->email) }}"
+                               required>
+
                         @error('email')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
@@ -62,8 +69,11 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control"
-                               value="{{ old('phone', $student->phone_number) }}" required>
+                        <input type="text" name="phone"
+                               class="form-control"
+                               value="{{ old('phone', $student->phone_number) }}"
+                               required>
+
                         @error('phone')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
@@ -71,7 +81,9 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Enrolled Year</label>
-                        <select name="enrolled_year" class="form-control" required>
+                        <select name="enrolled_year"
+                                class="form-control" required>
+
                             <option value="">Select year</option>
 
                             @for ($year = date('Y'); $year >= 2000; $year--)
@@ -80,40 +92,85 @@
                                     {{ $year }}
                                 </option>
                             @endfor
+
                         </select>
+
                         @error('enrolled_year')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
                     </div>
 
+                    @php
+                        $currentClass = $student->class_id
+                            ? \App\Models\ClassModel::find($student->class_id)
+                            : null;
+
+                        $selectedFaculty = old(
+                            'faculty_id',
+                            $currentClass?->faculty_id
+                        );
+
+                        $selectedSemester = old(
+                            'semester',
+                            $currentClass?->semester
+                        );
+                    @endphp
+
+                    {{-- Faculty --}}
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Faculty &amp; Semester</label>
+                        <label for="faculty_id" class="form-label">
+                            Faculty
+                        </label>
 
-                        <select name="class_id" class="form-control" required>
-                            <option value="">Select Faculty &amp; Semester</option>
+                        <select name="faculty_id" id="faculty_id"
+                                class="form-select @error('faculty_id') is-invalid @enderror">
 
-                            @foreach ($classes as $class)
-                                <option value="{{ $class->id }}"
-                                    {{ old('class_id', $student->class_id) == $class->id ? 'selected' : '' }}>
-                                    {{ $class->faculty->name ?? 'Unknown Faculty' }}
-                                    - Semester {{ $class->semester }}
+                            <option value="">Unassigned / Select Faculty</option>
+
+                            @foreach ($faculties as $faculty)
+                                <option value="{{ $faculty->id }}"
+                                    {{ (string) $selectedFaculty === (string) $faculty->id ? 'selected' : '' }}>
+                                    {{ $faculty->name }}
                                 </option>
                             @endforeach
+
                         </select>
 
-                        @error('class_id')
-                            <small class="text-danger">{{ $message }}</small>
+                        @error('faculty_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Semester --}}
+                    <div class="col-md-6 mb-3">
+                        <label for="semester" class="form-label">
+                            Semester
+                        </label>
+
+                        <select name="semester" id="semester"
+                                class="form-select @error('semester') is-invalid @enderror"
+                                disabled>
+
+                            <option value="">Select Faculty First</option>
+
+                        </select>
+
+                        @error('semester')
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
                         <small class="text-muted">
-                            Select the faculty and semester assigned to this student.
+                            Changing the faculty or semester updates the student's
+                            current academic class. Previous attendance and
+                            assignment records are preserved.
                         </small>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Change Profile Image</label>
 
-                        <input type="file" name="profile_image" id="profile_image"
+                        <input type="file" name="profile_image"
+                               id="profile_image"
                                class="form-control"
                                accept=".jpg,.jpeg,.png,.webp">
 
@@ -136,7 +193,8 @@
                 ])
 
                 <div class="text-end mt-4">
-                    <a href="{{ route('student.list') }}" class="btn btn-secondary">
+                    <a href="{{ route('student.list') }}"
+                       class="btn btn-secondary">
                         Cancel
                     </a>
 
@@ -151,5 +209,59 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const facultySelect = document.getElementById('faculty_id');
+    const semesterSelect = document.getElementById('semester');
+
+    const semesterMap = @json($semesterMap);
+
+    const selectedFaculty = @json($selectedFaculty);
+    const selectedSemester = @json($selectedSemester);
+
+    function loadSemesters(facultyId, semesterToSelect = '') {
+
+        semesterSelect.innerHTML = '';
+
+        const semesters = semesterMap[facultyId] || [];
+
+        if (!facultyId || semesters.length === 0) {
+            semesterSelect.disabled = true;
+            semesterSelect.add(new Option('No semesters available', ''));
+            return;
+        }
+
+        semesterSelect.disabled = false;
+        semesterSelect.add(new Option('Select Semester', ''));
+
+        semesters.forEach(function (semester) {
+
+            const option = new Option(
+                'Semester ' + semester,
+                semester
+            );
+
+            if (String(semester) === String(semesterToSelect)) {
+                option.selected = true;
+            }
+
+            semesterSelect.add(option);
+        });
+    }
+
+    facultySelect.addEventListener('change', function () {
+        loadSemesters(this.value);
+    });
+
+    // Load the student's existing faculty and semester.
+    if (selectedFaculty) {
+        facultySelect.value = selectedFaculty;
+        loadSemesters(selectedFaculty, selectedSemester);
+    }
+
+});
+</script>
 
 @endsection

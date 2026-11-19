@@ -1,199 +1,420 @@
 
 @extends('layouts.app')
 
-@section('title', 'Student List')
+@section('title', 'Student Management')
 
 @section('content')
 
-    <div class="page-heading" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
-        <div>
-            <div class="eyebrow">Overview</div>
-            <h1>Student List</h1>
+<div class="page-heading d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+        <div class="eyebrow">Academic Management</div>
+        <h1>Student Management</h1>
+        <p class="text-muted mb-0">
+            Manage students and filter them by their academic programme.
+        </p>
+    </div>
+
+    <a href="{{ route('student.add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>
+        Add New Student
+    </a>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger mt-3">
+        @foreach($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
+    </div>
+@endif
+
+<div class="content-wrapper">
+
+    {{-- FILTER SECTION --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-funnel text-primary fs-5"></i>
+                <div>
+                    <h5 class="mb-0">Filter Students</h5>
+                    <small class="text-muted">
+                        Narrow down students by faculty, semester or search.
+                    </small>
+                </div>
+            </div>
         </div>
-        <div>
-            <a href="{{ route('student.add') }}" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#2563EB;color:#ffffff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.1);transition:all 0.2s ease;text-decoration:none;" onmouseover="this.style.background='#1D4ED8'; this.style.boxShadow='0 2px 6px rgba(37,99,235,0.35)'" onmouseout="this.style.background='#2563EB'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)'">
-                <span style="font-size:17px;line-height:1;font-weight:400;">+</span> Add New Student
-            </a>
+
+        <div class="card-body">
+            <form method="GET" action="{{ route('student.list') }}" id="studentFilterForm">
+
+                <div class="row g-3">
+
+                    {{-- FACULTY --}}
+                    <div class="col-lg-3 col-md-6">
+                        <label for="faculty_id" class="form-label fw-semibold">
+                            Faculty
+                        </label>
+
+                        <select
+                            name="faculty_id"
+                            id="faculty_id"
+                            class="form-select"
+                        >
+                            <option value="">All faculties</option>
+
+                            @foreach($faculties as $faculty)
+                                <option
+                                    value="{{ $faculty->id }}"
+                                    @selected((string) $facultyId === (string) $faculty->id)
+                                >
+                                    {{ $faculty->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- SEMESTER --}}
+                    <div class="col-lg-3 col-md-6">
+                        <label for="semester" class="form-label fw-semibold">
+                            Semester
+                        </label>
+
+                        <select
+                            name="semester"
+                            id="semester"
+                            class="form-select"
+                        >
+                            <option value="">All semesters</option>
+
+                            @foreach($semesterOptions as $option)
+                                <option
+                                    value="{{ $option }}"
+                                    @selected((string) $semester === (string) $option)
+                                >
+                                    Semester {{ $option }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- SEARCH --}}
+                    <div class="col-lg-4 col-md-8">
+                        <label for="search" class="form-label fw-semibold">
+                            Search students
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+
+                            <input
+                                type="text"
+                                name="search"
+                                id="search"
+                                class="form-control"
+                                placeholder="Name, email, phone or enrolled year"
+                                value="{{ $search }}"
+                            >
+                        </div>
+                    </div>
+
+                    {{-- ACTIONS --}}
+                    <div class="col-lg-2 col-md-4 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-funnel me-1"></i>
+                            Apply
+                        </button>
+
+                        <a
+                            href="{{ route('student.list') }}"
+                            class="btn btn-outline-secondary"
+                            title="Reset filters"
+                        >
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+
+                </div>
+            </form>
         </div>
     </div>
 
-    @if (session('success'))
-        <div style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:14px;">
-            {{ session('success') }}
+    {{-- STUDENT TABLE --}}
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                <div>
+                    <h5 class="mb-1">Student Records</h5>
+                    <small class="text-muted">
+                        @if($students->total() > 0)
+                            Showing {{ $students->firstItem() }}–{{ $students->lastItem() }}
+                            of {{ $students->total() }} students
+                        @else
+                            No matching students
+                        @endif
+                    </small>
+                </div>
+
+                <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                    {{ number_format($students->total()) }} results
+                </span>
+
+            </div>
         </div>
-    @endif
 
-    <div class="content-wrapper">
+        <div class="card-body p-0">
 
-        <form method="GET" action="{{ route('student.list') }}" class="mb-4">
-            <div class="row g-2">
+            @if($students->count())
 
-                <div class="col-md-5">
-                    <input
-                        type="text"
-                        name="search"
-                        class="form-control"
-                        placeholder="Search student by name, email, phone or year..."
-                        value="{{ request('search') }}"
-                        aria-label="Search students"
-                        style="color:#334155;"
-                    >
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
 
-                    <style>
-                        input[name="search"]::placeholder {
-                            color: #94A3B8 !important;
-                            opacity: 1 !important;
-                        }
-
-                        input[name="search"]::-webkit-input-placeholder {
-                            color: #94A3B8 !important;
-                            opacity: 1 !important;
-                        }
-
-                        input[name="search"]::-moz-placeholder {
-                            color: #94A3B8 !important;
-                            opacity: 1 !important;
-                        }
-                    </style>
-                </div>
-
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i>
-                        Search
-                    </button>
-                </div>
-
-                <div class="col-md-2">
-                    <a href="{{ route('student.list') }}" class="btn btn-secondary w-100">
-                        <i class="bi bi-x-circle"></i>
-                        Clear
-                    </a>
-                </div>
-
-            </div>
-        </form>
-
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">All Students</h3>
-            </div>
-
-            <div class="card-body p-0">
-
-                @if(request('search'))
-                    <div class="alert alert-info">
-                        Showing results for:
-                        <strong>{{ request('search') }}</strong>
-                    </div>
-                @endif
-
-                @if ($students->count())
-
-                    <table class="table table-striped">
-                        <thead>
+                        <thead class="table-light">
                             <tr>
-                                <th style="width: 10px">#</th>
-                                <th style="width: 90px">Photo</th>
-                                <th>Name</th>
+                                <th class="ps-3">#</th>
+                                <th>Student</th>
                                 <th>Email</th>
                                 <th>Phone</th>
+                                <th>Faculty</th>
+                                <th>Semester</th>
                                 <th>Enrolled Year</th>
-                                <th>Class</th>
-                                <th style="width: 140px">Actions</th>
+                                <th class="text-end pe-3">Actions</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            @foreach ($students as $student)
+
+                            @foreach($students as $student)
+
                                 <tr>
-                                    <td>
-                                        {{ $loop->iteration + ($students->currentPage() - 1) * $students->perPage() }}.
+
+                                    <td class="ps-3 text-muted">
+                                        {{ $students->firstItem() + $loop->index }}
                                     </td>
 
+                                    {{-- STUDENT --}}
                                     <td>
-                                        @if ($student->photo)
-                                            <img
-                                                src="{{ asset('uploads/profile/' . $student->photo) }}"
-                                                alt="{{ $student->name }}"
-                                                style="width:38px;height:38px;border-radius:50%;object-fit:cover;"
-                                            >
+                                        <div class="d-flex align-items-center gap-2">
+
+                                            @if($student->photo)
+                                                <img
+                                                    src="{{ asset('uploads/profile/' . $student->photo) }}"
+                                                    alt="{{ $student->name }}"
+                                                    width="40"
+                                                    height="40"
+                                                    class="rounded-circle"
+                                                    style="object-fit:cover;"
+                                                >
+                                            @else
+                                                <div
+                                                    class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold"
+                                                    style="width:40px;height:40px;flex-shrink:0;"
+                                                >
+                                                    {{ strtoupper(substr($student->name, 0, 1)) }}
+                                                </div>
+                                            @endif
+
+                                            <div>
+                                                <div class="fw-semibold">
+                                                    {{ $student->name }}
+                                                </div>
+
+                                                <small class="text-muted">
+                                                    Student
+                                                </small>
+                                            </div>
+
+                                        </div>
+                                    </td>
+
+                                    {{-- EMAIL --}}
+                                    <td>
+                                        <span>{{ $student->email }}</span>
+                                    </td>
+
+                                    {{-- PHONE --}}
+                                    <td>
+                                        {{ $student->phone_number ?? '—' }}
+                                    </td>
+
+                                    {{-- FACULTY --}}
+                                    <td>
+                                        @if($student->classroom)
+                                            {{ $student->classroom->faculty->name ?? '—' }}
                                         @else
-                                            <span style="font-size:12px;color:var(--text-secondary,#64748B);">
-                                                No photo
-                                            </span>
+                                            <span class="text-muted">Not assigned</span>
                                         @endif
                                     </td>
 
-                                    <td>{{ $student->name }}</td>
-
-                                    <td>{{ $student->email }}</td>
-
-                                    <td>{{ $student->phone_number ?? '—' }}</td>
-
-                                    <td>{{ $student->enrolled_year ?? '—' }}</td>
-
+                                    {{-- SEMESTER --}}
                                     <td>
-                                        @if ($student->classroom)
-                                            {{ $student->classroom->faculty->name ?? 'Unknown' }}
-                                            – Sem {{ $student->classroom->semester }}
-                                        @else
-                                            <span style="font-size:12px;color:var(--text-secondary,#64748B);">
-                                                Not assigned
+                                        @if($student->classroom)
+                                            <span class="badge bg-light text-dark border">
+                                                Semester {{ $student->classroom->semester }}
                                             </span>
+                                        @else
+                                            <span class="text-muted">—</span>
                                         @endif
                                     </td>
 
+                                    {{-- ENROLLED YEAR --}}
                                     <td>
-                                        <a
-                                            href="{{ route('student.edit', $student->id) }}"
-                                            style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:var(--primary-soft);color:var(--primary);text-decoration:none;margin-right:6px;"
-                                            title="Edit Student"
-                                        >
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-
-                                        <form
-                                            action="{{ route('student.delete', $student->id) }}"
-                                            method="POST"
-                                            style="display:inline-block;"
-                                            onsubmit="return confirm('Delete this student? This cannot be undone.');"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button
-                                                type="submit"
-                                                title="Delete Student"
-                                                style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:rgba(220,38,38,0.08);color:#DC2626;border:none;cursor:pointer;"
-                                            >
-                                                <i class="bi bi-trash3"></i>
-                                            </button>
-                                        </form>
+                                        {{ $student->enrolled_year ?? '—' }}
                                     </td>
+
+                                    {{-- ACTIONS --}}
+                                    <td class="text-end pe-3">
+
+                                        <div class="d-inline-flex gap-1">
+
+                                            <a
+                                                href="{{ route('student.edit', $student->id) }}"
+                                                class="btn btn-sm btn-outline-primary"
+                                                title="Edit student"
+                                            >
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <form
+                                                action="{{ route('student.delete', $student->id) }}"
+                                                method="POST"
+                                                onsubmit="return confirm('Are you sure you want to delete this student? This action cannot be undone.');"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    title="Delete student"
+                                                >
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
                                 </tr>
+
                             @endforeach
+
                         </tbody>
+
                     </table>
+                </div>
 
-                    <div style="padding:16px 20px;">
-                        {{ $students->links() }}
+                {{-- PAGINATION --}}
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3">
+
+                    <small class="text-muted">
+                        Page {{ $students->currentPage() }} of {{ $students->lastPage() }}
+                    </small>
+
+                    {{ $students->links('pagination::bootstrap-5') }}
+
+                </div>
+
+            @else
+
+                <div class="text-center py-5 px-3">
+
+                    <div class="mb-3">
+                        <i class="bi bi-people text-muted" style="font-size:42px;"></i>
                     </div>
 
-                @else
+                    <h5>No students found</h5>
 
-                    <div style="padding:40px 20px;text-align:center;color:var(--text-secondary,#64748B);">
-                        No students found yet.
-                        <a href="{{ route('student.add') }}" style="color:var(--primary,#2563EB);font-weight:600;">
-                            Add your first student
-                        </a>.
-                    </div>
+                    <p class="text-muted mb-3">
+                        No students match your selected filters or search.
+                    </p>
 
-                @endif
+                    <a
+                        href="{{ route('student.list') }}"
+                        class="btn btn-outline-primary btn-sm"
+                    >
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Clear filters
+                    </a>
 
-            </div>
+                </div>
+
+            @endif
+
         </div>
-
     </div>
 
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const facultySelect = document.getElementById('faculty_id');
+    const semesterSelect = document.getElementById('semester');
+
+    const semesterMap = @json($semesterMap);
+    const selectedSemester = @json((string) ($semester ?? ''));
+
+    function populateSemesters(selectedValue = '') {
+
+        const facultyId = facultySelect.value;
+
+        semesterSelect.innerHTML = '';
+
+        semesterSelect.add(
+            new Option('All semesters', '')
+        );
+
+        let semesters = [];
+
+        if (facultyId) {
+            semesters = semesterMap[facultyId] || [];
+        } else {
+            const all = Object.values(semesterMap).flat();
+
+            semesters = [...new Set(all)]
+                .sort((a, b) => Number(a) - Number(b));
+        }
+
+        semesters.forEach(function (semester) {
+
+            const option = new Option(
+                'Semester ' + semester,
+                semester
+            );
+
+            if (String(semester) === String(selectedValue)) {
+                option.selected = true;
+            }
+
+            semesterSelect.add(option);
+        });
+    }
+
+    facultySelect.addEventListener('change', function () {
+
+        // A semester from the previous faculty must not remain selected.
+        populateSemesters('');
+
+    });
+
+    populateSemesters(selectedSemester);
+
+});
+</script>
+@endpush
